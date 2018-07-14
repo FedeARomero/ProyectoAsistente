@@ -19,12 +19,12 @@ public class ChatHandler extends Thread {
 	private Socket cliente;
 	private DataInputStream in;
 	private DataOutputStream out;
-	
+
 	private String usuario;
 	private int estado = ESPERANDO_LOGIN;
 	public static HashMap<String, ChatHandler> clientes;
-	public static HashMap<Integer, Sala> salas;
-	public static int numSala;
+	public static HashMap<String, Sala> salas;
+	public static int numSala = 0;
 	private boolean conectado = true;
 
 	public ChatHandler(Socket cliente) throws IOException {
@@ -39,6 +39,7 @@ public class ChatHandler extends Thread {
 	public void run() {
 		while (conectado) {
 			try {
+
 				Mensaje msg = new Mensaje(in.readUTF());
 				procesar(msg);
 			} catch (IOException e) {
@@ -63,22 +64,37 @@ public class ChatHandler extends Thread {
 			case Mensaje.NUEVA_SALA:
 				crearSala(msg);
 				break;
+			case Mensaje.NUEVO_INTEGRANTE_SALA:
+				nuevoIntegranteSala(msg);
+				break;
+			case Mensaje.MENSAJE_SALA:
+				mensajeSala(msg);
+				break;
 			default:
 				break;
 			}
 		}
 	}
 
+	private void mensajeSala(Mensaje msg) {
+		broadcast(msg);
+	}
+
+	private void nuevoIntegranteSala(Mensaje msg) {
+		broadcast(msg);
+	}
+
 	private void crearSala(Mensaje msg) {
-		salas.putIfAbsent(numSala, new Sala(numSala, msg.getContenido()));
+		// salas.putIfAbsent(msg.getContenido(), new Sala(numSala, msg.getContenido()));
+		salas.putIfAbsent(msg.getContenido(), new Sala(msg.getContenido()));
 		numSala++;
 		actualizarSalas();
 	}
 
 	private void actualizarSalas() {
 		String contenido = "";
-		for (int salaID : salas.keySet()) {
-			contenido += salaID + "," + salas.get(salaID) + "\n";
+		for (String salaID : salas.keySet()) {
+			contenido += salaID + "&" + salas.get(salaID).getTopico() + ",";
 		}
 		Mensaje msg = new Mensaje(contenido, Mensaje.ACTUALIZAR_SALAS);
 		broadcast(msg);
@@ -87,7 +103,7 @@ public class ChatHandler extends Thread {
 	private void login(Mensaje msg) {
 		String usuarioEntrante = msg.getOrigen();
 		for (String usuarioRegistrado : clientes.keySet()) {
-			if( usuarioEntrante.equals(usuarioRegistrado)) {
+			if (usuarioEntrante.equals(usuarioRegistrado)) {
 				Mensaje a = new Mensaje();
 				a.setContenido("usuario esta en uso");// usuario ya existe
 				a.setTipo(Mensaje.USUARIO_EN_USO);
@@ -100,6 +116,7 @@ public class ChatHandler extends Thread {
 		clientes.put(usuarioEntrante, this);
 		this.usuario = usuarioEntrante;
 		actualizarUsuarios();
+		actualizarSalas();
 	}
 
 	private void actualizarUsuarios() {
@@ -111,12 +128,12 @@ public class ChatHandler extends Thread {
 	}
 
 	private void broadcast(Mensaje msg) {
-		for( ChatHandler usuario : clientes.values()) {
+		for (ChatHandler usuario : clientes.values()) {
 			usuario.enviar(msg);
 		}
 	}
 
-	private void enviar(Mensaje msg){
+	private void enviar(Mensaje msg) {
 		try {
 			Gson gson = new Gson();
 			String mensaje = gson.toJson(msg);

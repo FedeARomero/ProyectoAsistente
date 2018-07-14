@@ -1,4 +1,4 @@
-package interfaz;
+	package interfaz;
 
 import java.awt.EventQueue;
 
@@ -72,7 +72,6 @@ public class InterfazLoginCliente {
 			public void actionPerformed(ActionEvent e) {
 				//CONECTAR AL SV Y APAGAR BOTON SI PUDE CONECTARME 
 				//HABILITO INICIAR SESION SI PUDE CONECTARME AL SV
-				
 				String ip = textFieldIP.getText();
 				try {
 					cliente = new Cliente(ip, 10001);
@@ -104,20 +103,22 @@ public class InterfazLoginCliente {
 		btnIniciarSesion.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				Mensaje msj = new Mensaje();
-				msj.setOrigen(textFieldUsuario.getText());
-				msj.setContenido(textFieldUsuario.getText());
+				String nombreUsuario=textFieldUsuario.getText();
+				msj.setOrigen(nombreUsuario);
+				msj.setContenido(nombreUsuario);
 				cliente.enviar(msj);
 				try {
 					Thread.sleep(2000);
 				} catch (InterruptedException e1) { 
 				}
-				System.out.println(cliente.estado);
+				System.out.println("Cliente estado:" + cliente.estado);
 				if(cliente.estado == Cliente.LOGGEADO) {
-					InterfazSalas principal = new InterfazSalas();
+					InterfazSalas principal = new InterfazSalas(cliente, nombreUsuario);
+					principal.start();
 					frame.dispose();
 					JOptionPane.showMessageDialog(null, "Conectado al servidor", "", JOptionPane.INFORMATION_MESSAGE);
 				}else if(cliente.estado == Cliente.USUARIO_EN_USO) {
-					JOptionPane.showMessageDialog(null, "El usuario ya est· en uso.", "", JOptionPane.INFORMATION_MESSAGE);
+						JOptionPane.showMessageDialog(null, "El usuario ya est√° en uso.", "", JOptionPane.INFORMATION_MESSAGE);
 				}
 			}
 		});
